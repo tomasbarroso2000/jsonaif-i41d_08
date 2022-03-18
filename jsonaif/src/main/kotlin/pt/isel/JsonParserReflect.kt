@@ -18,22 +18,21 @@ object JsonParserReflect  : AbstractJsonParser() {
     }
 
     override fun parseObject(tokens: JsonTokens, klass: KClass<*>): Any? {
-        val parameters = klass.primaryConstructor?.parameters
+        val constructor = klass.primaryConstructor
+        val parameters = constructor?.parameters
         val parameterValues = mutableMapOf<KParameter, Any?>()
         tokens.pop(OBJECT_OPEN)
-        while(tokens.current != OBJECT_END){
+        while (tokens.current != OBJECT_END) {
             val propertyName = tokens.popWordFinishedWith(COLON).trim()
-            val filteredParameters = parameters?.filter { it.name == propertyName }
-            filteredParameters?.let {
-                if (filteredParameters.isNotEmpty()) {
-                    val parameter = filteredParameters[0]
-                    parameterValues[parameter] =
-                        parse(tokens, parameter.type.classifier as KClass<*>)
-                    if(tokens.current == COMMA) tokens.pop(COMMA)
-                }
+            val parameter = parameters?.find { it.name == propertyName }
+            parameter?.let {
+                parameterValues[parameter] =
+                    parse(tokens, parameter.type.classifier as KClass<*>)
+                if (tokens.current == COMMA) tokens.pop(COMMA)
             }
         }
-        return klass.primaryConstructor?.callBy(parameterValues)
+        tokens.pop(OBJECT_END)
+        return constructor?.callBy(parameterValues)
     }
 
 }
