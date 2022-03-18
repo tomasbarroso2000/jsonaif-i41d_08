@@ -1,7 +1,11 @@
 package pt.isel
 
 import kotlin.reflect.KClass
+import kotlin.reflect.KParameter
+import kotlin.reflect.KType
 import kotlin.reflect.full.createInstance
+import kotlin.reflect.full.primaryConstructor
+import kotlin.reflect.jvm.jvmErasure
 
 object JsonParserReflect  : AbstractJsonParser() {
 
@@ -17,7 +21,19 @@ object JsonParserReflect  : AbstractJsonParser() {
     }
 
     override fun parseObject(tokens: JsonTokens, klass: KClass<*>): Any? {
-        TODO("Not yet implemented")
+        val parameters = klass.primaryConstructor?.parameters
+        val parameterValues = mutableMapOf<KParameter, Any?>()
+        tokens.pop()
+        while(tokens.current != OBJECT_END){
+            val propertyName = tokens.popWordFinishedWith(COLON).trim()
+            val filteredParameters = parameters?.filter { it.name == propertyName }
+            if (filteredParameters != null && filteredParameters.isNotEmpty()) {
+                parameterValues[filteredParameters[0]] =
+                    parse(tokens, filteredParameters[0].type.classifier as KClass<*>)
+                if(tokens.current == COMMA) tokens.pop()
+            }
+        }
+        return klass.primaryConstructor?.callBy(parameterValues)
     }
 
 }
