@@ -14,6 +14,20 @@ class JsonParserTest {
         assertEquals(7353, student.nr)
     }
 
+    @Test fun parseSimpleObjectViaPropertiesWithAdditionalNonExistingProperty() {
+        val json = "{ name: \"Ze Manel\", nr: 7353, age: 18}"
+        val student = JsonParserReflect.parse(json, Student::class) as Student
+        assertEquals("Ze Manel", student.name)
+        assertEquals(7353, student.nr)
+    }
+
+    @Test fun parseSimpleObjectViaPropertiesWithUnorderedProperties() {
+        val json = "{nr: 7353, name: \"Ze Manel\"}"
+        val student = JsonParserReflect.parse(json, Student::class) as Student
+        assertEquals("Ze Manel", student.name)
+        assertEquals(7353, student.nr)
+    }
+
     @Test fun parseSimpleObjectViaConstructor() {
         val json = "{ id: 94646, name: \"Ze Manel\"}"
         val p = JsonParserReflect.parse(json, Person::class) as Person
