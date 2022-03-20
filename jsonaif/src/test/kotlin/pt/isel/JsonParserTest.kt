@@ -28,6 +28,15 @@ class JsonParserTest {
         assertEquals(7353, student.nr)
     }
 
+    @Test fun parseArrayOfStudentUsingSetters() {
+        val json = "[{nr: 7353, name: \"Ze Manel\"}, {nr: 7354, name: \"Ze Shrek\"}, {nr: 7355, name: \"Ze Toni\"}]"
+        val ps = JsonParserReflect.parse(json, Student::class) as List<Student>
+        assertEquals(3, ps.size)
+        assertEquals("Ze Manel", ps[0].name)
+        assertEquals("Ze Shrek", ps[1].name)
+        assertEquals("Ze Toni", ps[2].name)
+    }
+
     @Test fun parseSimpleObjectViaConstructor() {
         val json = "{ id: 94646, name: \"Ze Manel\"}"
         val p = JsonParserReflect.parse(json, Person::class) as Person
@@ -46,7 +55,7 @@ class JsonParserTest {
     }
 
     @Test fun parseArray() {
-        val json = "[{ id: 94646, name: \"Ze Manel\"}, { id: 94647, name: \"Candida Raimunda\"}, {id: 94648, name: \"Kata Mandala\"}]";
+        val json = "[{ id: 94646, name: \"Ze Manel\"}, { id: 94647, name: \"Candida Raimunda\"}, {id: 94648, name: \"Kata Mandala\"}]"
         val ps = JsonParserReflect.parse(json, Person::class) as List<Person>
         assertEquals(3, ps.size)
         assertEquals("Ze Manel", ps[0].name)
