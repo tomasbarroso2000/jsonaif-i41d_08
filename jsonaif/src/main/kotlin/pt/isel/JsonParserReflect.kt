@@ -25,40 +25,15 @@ object JsonParserReflect  : AbstractJsonParser() {
                         .any { it.parameters.all(KParameter::isOptional) }
                         .let { if (it) klass.createInstance() else null }
 
-        val propertiesNames = setters[klass]?.keys
+        //Create setter functions if they don't already exist
+        setters.computeIfAbsent(klass, ::createSetterFunctions)
 
         //Start of object
         tokens.pop(OBJECT_OPEN)
 
         //Obtain all properties until end of JSON object
         while (tokens.current != OBJECT_END) {
-            //Property name from JSON Object
-            val propertyName = tokens.popWordFinishedWith(COLON).trim()
-
-            if (propertiesNames == null || !propertiesNames.contains(propertyName)) {
-                val property = klass.declaredMemberProperties.find { it.name == propertyName }
-                //Set the property's value
-                property?.let {
-
-                    //If there is setter record
-                    if (setters[klass] == null) setters[klass] = mutableMapOf()
-                    val propertyMap = setters[klass]
-
-                    propertyMap?.let {
-                        if (propertyMap is MutableMap && propertyMap[propertyName] == null)
-                            propertyMap[propertyName] = createSetter(property)
-                    }
-                }
-            }
-            instance?.let { setters[klass]?.get(propertyName)?.apply(instance, tokens) }
-
-            //Find if property exists in KClass constructor
-
-            //Pop token content until it reaches another property or the end of object
-            while (tokens.current != COMMA && tokens.current != OBJECT_END) tokens.pop()
-
-            //If there are more properties it is necessary to pop the comma
-            if (tokens.current == COMMA) tokens.pop(COMMA)
+            parseProperty(klass, instance, tokens)
         }
 
         //End of object
@@ -66,14 +41,34 @@ object JsonParserReflect  : AbstractJsonParser() {
         return instance
     }
 
-    private fun createSetter(property: KProperty<*>): Setter {
-        return object : Setter {
-            override fun apply(target: Any, tokens: JsonTokens) {
-                val propertyValue = parse(tokens, property.returnType.classifier as KClass<*>)
-                if (property is KMutableProperty<*>)
-                    property.setter.call(target, propertyValue)
+    private fun createSetterFunctions(klass: KClass<*>) : Map<String, Setter> {
+        val map = mutableMapOf<String, Setter>()
+        klass
+            .declaredMemberProperties
+            .forEach { prop ->
+                map[prop.name] = object : Setter {
+                    override fun apply(target: Any, tokens: JsonTokens) {
+                        val propertyValue = parse(tokens, prop.returnType.classifier as KClass<*>)
+                        if (prop is KMutableProperty<*>)
+                            prop.setter.call(target, propertyValue)
+                    }
+                }
             }
-        }
+        return map
+    }
+
+    private fun parseProperty(klass: KClass<*>, instance: Any?, tokens: JsonTokens) {
+        //Property name from JSON Object
+        val propertyName = tokens.popWordFinishedWith(COLON).trim()
+
+        //Apply the new value of the property
+        instance?.let { setters[klass]?.get(propertyName)?.apply(instance, tokens) }
+
+        //Pop token content until it reaches another property or the end of object to prevent non-existing properties
+        while (tokens.current != COMMA && tokens.current != OBJECT_END) tokens.pop()
+
+        //If there are more properties it is necessary to pop the comma
+        if (tokens.current == COMMA) tokens.pop(COMMA)
     }
 
 }
