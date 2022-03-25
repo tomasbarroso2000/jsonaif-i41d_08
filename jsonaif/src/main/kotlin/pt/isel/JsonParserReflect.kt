@@ -114,12 +114,15 @@ object JsonParserReflect  : AbstractJsonParser() {
         val map = mutableMapOf<String, Setter>()
         klass
             .declaredMemberProperties
+            .filter { it is KMutableProperty<*> }
+            .map { it as KMutableProperty<*> }
             .forEach { prop ->
                 map[prop.name] = object : Setter {
+                    val propertyKlass = prop.returnType.classifier as KClass<*>
                     override fun apply(target: Any, tokens: JsonTokens) {
-                        val propertyValue = parse(tokens, prop.returnType.classifier as KClass<*>)
-                        if (prop is KMutableProperty<*>)
-                            prop.setter.call(target, propertyValue)
+                        println(propertyKlass.qualifiedName)
+                        val propertyValue = parse(tokens, propertyKlass)
+                        prop.setter.call(target, propertyValue)
                     }
                 }
             }
