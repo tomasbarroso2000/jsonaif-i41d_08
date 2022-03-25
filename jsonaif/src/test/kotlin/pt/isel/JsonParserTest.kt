@@ -1,5 +1,6 @@
 package pt.isel
 
+import pt.isel.sample.Classroom
 import pt.isel.sample.Person
 import pt.isel.sample.Student
 import kotlin.test.Test
@@ -61,5 +62,14 @@ class JsonParserTest {
         assertEquals("Ze Manel", ps[0].name)
         assertEquals("Candida Raimunda", ps[1].name)
         assertEquals("Kata Mandala", ps[2].name)
+    }
+
+    @Test fun parseClassroomWithArrayOfStudents() {
+        val json = "{ name: \"Class H\", students: [{ nr: 9677, name: \"Ze Shrek\"}, { nr: 9642, name: \"Lord Farquaad\"}]}"
+        val ps = JsonParserReflect.parse(json, Classroom::class) as Classroom
+        println(ps)
+        assertEquals(2, ps.students.size)
+        assertEquals("Class H", ps.name)
+        assertEquals("Lord Farquaad", ps.students[1].name)
     }
 }
