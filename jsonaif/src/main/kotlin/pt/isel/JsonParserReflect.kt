@@ -118,7 +118,13 @@ object JsonParserReflect  : AbstractJsonParser() {
             .map { it as KMutableProperty<*> }
             .forEach { prop ->
                 map[prop.name] = object : Setter {
-                    val propertyKlass = prop.returnType.classifier as KClass<*>
+
+                    val propertyKlass = prop.returnType.let { returnType->
+                        val arguments = returnType.arguments
+                        if (arguments.isNotEmpty()) arguments[0].type?.classifier as KClass<*>
+                        else returnType.classifier as KClass<*>
+                    }
+
                     override fun apply(target: Any, tokens: JsonTokens) {
                         println(propertyKlass.qualifiedName)
                         val propertyValue = parse(tokens, propertyKlass)
