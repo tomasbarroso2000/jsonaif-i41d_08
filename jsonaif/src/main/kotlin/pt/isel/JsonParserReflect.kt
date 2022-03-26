@@ -12,6 +12,7 @@ object JsonParserReflect  : AbstractJsonParser() {
      * This is for Part 2 of Jsonaif workout.
      */
     private val setters = mutableMapOf<KClass<*>, Map<String, Setter>>()
+    private val constructorParameters = mutableMapOf<KClass<*>, Map<KParameter, KClass<*>>>()
     
     override fun parsePrimitive(tokens: JsonTokens, klass: KClass<*>): Any? {
         val string = tokens.popWordPrimitive()
@@ -50,26 +51,24 @@ object JsonParserReflect  : AbstractJsonParser() {
     }
 
     private fun parseObjectWithoutOptionalParameters(tokens: JsonTokens, klass: KClass<*>): Any? {
-            //The constructor of the KClass passed as parameter
-            val constructor = klass.primaryConstructor
 
-            //List containing all the parameters in the KClass constructor
-            val parameters = constructor?.parameters
+        val constructor = klass.primaryConstructor
+        constructorParameters.computeIfAbsent(klass, ::createConstructorParameters)
 
-            //Map associating the KClass constructor parameters with its respective value
-            val parameterValues = mutableMapOf<KParameter, Any?>()
+        //Map associating the KClass constructor parameters with its respective value
+        val parameterValues = mutableMapOf<KParameter, Any?>()
 
-            //Start of object
-            tokens.pop(OBJECT_OPEN)
+        //Start of object
+        tokens.pop(OBJECT_OPEN)
 
-            //Obtains all properties until end of JSON object
-            while (tokens.current != OBJECT_END) {
-                parsePropertyNotOptional(parameters, parameterValues, tokens)
-            }
+        //Obtains all properties until end of JSON object
+        while (tokens.current != OBJECT_END) {
+            parsePropertyNotOptional(klass, parameterValues, tokens)
+        }
 
-            //end of object
-            tokens.pop(OBJECT_END)
-            return constructor?.callBy(parameterValues)
+        //end of object
+        tokens.pop(OBJECT_END)
+        return constructor?.callBy(parameterValues)
     }
 
     private fun parsePropertyOptional(klass: KClass<*>, instance: Any?, tokens: JsonTokens) {
@@ -87,20 +86,24 @@ object JsonParserReflect  : AbstractJsonParser() {
     }
 
     private fun  parsePropertyNotOptional(
-        parameters: List<KParameter>?,
+        klass: KClass<*>,
         parameterValues: MutableMap<KParameter, Any?>,
         tokens: JsonTokens)
     {
         //Property name from JSON Object
         val propertyName = tokens.popWordFinishedWith(COLON).trim()
+        val parameters = constructorParameters[klass]?.keys
 
         //Find if property exists in KClass constructor
         val parameter = parameters?.find { it.name == propertyName }
+        val parameterKlass = constructorParameters[klass]?.get(parameter)
 
-        //Save the property and it`s value in parameterValues Map
+        //Save the property and its value in parameterValues Map
         parameter?.let {
-            parameterValues[parameter] =
-                parse(tokens, parameter.type.classifier as KClass<*>)
+            if (parameterKlass != null) {
+                parameterValues[parameter] =
+                    parse(tokens, parameterKlass)
+            }
         }
 
         //Pop token content until it reaches another property or the end of object to prevent non-existing properties
@@ -132,6 +135,13 @@ object JsonParserReflect  : AbstractJsonParser() {
                     }
                 }
             }
+        return map
+    }
+
+    private fun createConstructorParameters(klass: KClass<*>) : Map<KParameter, KClass<*>> {
+        val map = mutableMapOf<KParameter, KClass<*>>()
+        val constructor = klass.primaryConstructor
+        constructor?.parameters?.forEach { map[it] = it.type.classifier as KClass<*> }
         return map
     }
 }
