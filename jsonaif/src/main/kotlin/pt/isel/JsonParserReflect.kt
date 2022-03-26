@@ -72,6 +72,20 @@ object JsonParserReflect  : AbstractJsonParser() {
             return constructor?.callBy(parameterValues)
     }
 
+    private fun parsePropertyOptional(klass: KClass<*>, instance: Any?, tokens: JsonTokens) {
+        //Property name from JSON Object
+        val propertyName = tokens.popWordFinishedWith(COLON).trim()
+
+        //Apply the new value of the property
+        instance?.let { setters[klass]?.get(propertyName)?.apply(instance, tokens) }
+
+        //Pop token content until it reaches another property or the end of object to prevent non-existing properties
+        while (tokens.current != COMMA && tokens.current != OBJECT_END) tokens.pop()
+
+        //If there are more properties it is necessary to pop the comma
+        if (tokens.current == COMMA) tokens.pop(COMMA)
+    }
+
     private fun  parsePropertyNotOptional(
         parameters: List<KParameter>?,
         parameterValues: MutableMap<KParameter, Any?>,
@@ -88,20 +102,6 @@ object JsonParserReflect  : AbstractJsonParser() {
             parameterValues[parameter] =
                 parse(tokens, parameter.type.classifier as KClass<*>)
         }
-
-        //Pop token content until it reaches another property or the end of object to prevent non-existing properties
-        while (tokens.current != COMMA && tokens.current != OBJECT_END) tokens.pop()
-
-        //If there are more properties it is necessary to pop the comma
-        if (tokens.current == COMMA) tokens.pop(COMMA)
-    }
-
-    private fun parsePropertyOptional(klass: KClass<*>, instance: Any?, tokens: JsonTokens) {
-        //Property name from JSON Object
-        val propertyName = tokens.popWordFinishedWith(COLON).trim()
-
-        //Apply the new value of the property
-        instance?.let { setters[klass]?.get(propertyName)?.apply(instance, tokens) }
 
         //Pop token content until it reaches another property or the end of object to prevent non-existing properties
         while (tokens.current != COMMA && tokens.current != OBJECT_END) tokens.pop()

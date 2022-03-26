@@ -1,5 +1,6 @@
 package pt.isel
 
+import pt.isel.sample.Account
 import pt.isel.sample.Classroom
 import pt.isel.sample.Person
 import pt.isel.sample.Student
@@ -71,5 +72,26 @@ class JsonParserTest {
         assertEquals(2, ps.students.size)
         assertEquals("Class H", ps.name)
         assertEquals("Lord Farquaad", ps.students[1].name)
+    }
+
+    @Test fun parseAccountWithArrayOfStrings() {
+        val json = "{ balance: 20.0, transactions: [\"1 to Shrek\", \"2 to Farquaad\", \"3 to Ze\"]}"
+        val ps = JsonParserReflect.parse(json, Account::class) as Account
+        println(ps)
+        assertEquals("1 to Shrek", ps.transactions[0])
+        assertEquals("2 to Farquaad", ps.transactions[1])
+        assertEquals("3 to Ze", ps.transactions[2])
+    }
+
+    @Test fun parseListOfClassroom() {
+        val json =
+            "[{name: \"Class H\", students: [{ nr: 9677, name: \"Ze Shrek\"}, { nr: 9642, name: \"Lord Farquaad\"}]}, " +
+                    "{students: [{nr: 1234, name: \"Fiona\"}]}]"
+        val ps = JsonParserReflect.parse(json, Classroom::class) as List<Classroom>
+        println(ps)
+        assertEquals("Class H", ps[0].name)
+        assertEquals("Class G", ps[1].name)
+        assertEquals("Lord Farquaad", ps[0].students[1].name)
+        assertEquals(listOf(Student(1234, "Fiona")), ps[1].students)
     }
 }

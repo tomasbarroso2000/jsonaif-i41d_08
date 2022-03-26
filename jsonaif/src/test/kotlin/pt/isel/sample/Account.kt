@@ -1,3 +1,3 @@
 package pt.isel.sample
 
-data class Account( val balance: Int, val transactions: List<String>)
+data class Account( val balance: Double, val transactions: List<String>)
