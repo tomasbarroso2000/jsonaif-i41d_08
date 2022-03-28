@@ -1,3 +1,8 @@
 package pt.isel.sample
 
-data class Student (var nr: Int = 0, var name: String? = null)
+import pt.isel.JsonProperty
+
+data class Student (
+    @JsonProperty("student_number") var nr: Int = 0,
+    @JsonProperty("student_name") var name: String? = null
+)

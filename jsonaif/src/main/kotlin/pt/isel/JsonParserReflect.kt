@@ -1,9 +1,7 @@
 package pt.isel
 
 import kotlin.reflect.*
-import kotlin.reflect.full.createInstance
-import kotlin.reflect.full.declaredMemberProperties
-import kotlin.reflect.full.primaryConstructor
+import kotlin.reflect.full.*
 
 object JsonParserReflect  : AbstractJsonParser() {
 
@@ -91,11 +89,15 @@ object JsonParserReflect  : AbstractJsonParser() {
         tokens: JsonTokens)
     {
         //Property name from JSON Object
-        val propertyName = tokens.popWordFinishedWith(COLON).trim()
+        val jsonPropertyName = tokens.popWordFinishedWith(COLON).trim()
         val parameters = constructorParameters[klass]?.keys
 
+
         //Find if property exists in KClass constructor
-        val parameter = parameters?.find { it.name == propertyName }
+        val parameter = parameters?.find { prop->
+            val propertyName = prop.findAnnotation<JsonProperty>()?.readAs ?: prop.name
+            propertyName == jsonPropertyName
+        }
         val parameterKlass = constructorParameters[klass]?.get(parameter)
 
         //Save the property and its value in parameterValues Map
@@ -120,7 +122,8 @@ object JsonParserReflect  : AbstractJsonParser() {
             .filter { it is KMutableProperty<*> }
             .map { it as KMutableProperty<*> }
             .forEach { prop ->
-                map[prop.name] = object : Setter {
+                val propertyName = prop.findAnnotation<JsonProperty>()?.readAs ?: prop.name
+                map[propertyName] = object : Setter {
 
                     val propertyKlass = prop.returnType.let { returnType->
                         val arguments = returnType.arguments

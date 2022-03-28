@@ -1,3 +1,10 @@
 package pt.isel.sample
 
-data class Person (val id: Int, val name: String, val birth: Date? = null, var sibling: Person? = null)
+import pt.isel.JsonProperty
+
+data class Person (
+    @JsonProperty("person_id") val id: Int,
+    @JsonProperty("person_name") val name: String,
+    val birth: Date? = null,
+    var sibling: Person? = null
+)
