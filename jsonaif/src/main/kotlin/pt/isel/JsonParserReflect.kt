@@ -99,12 +99,22 @@ object JsonParserReflect  : AbstractJsonParser() {
             propertyName == jsonPropertyName
         }
         val parameterKlass = constructorParameters[klass]?.get(parameter)
+        val convertKlass = parameter?.findAnnotation<JsonConvert>()?.convertTo
+        val propertyValueConverter =
+            convertKlass
+                ?.let { klass ->
+                    klass.declaredFunctions.find { it.name == "convert" }
+                }
 
         //Save the property and its value in parameterValues Map
         parameter?.let {
             if (parameterKlass != null) {
                 parameterValues[parameter] =
-                    parse(tokens, parameterKlass)
+                    if (propertyValueConverter != null) {
+                        tokens.pop(DOUBLE_QUOTES)
+                        val readValue = tokens.popWordFinishedWith(DOUBLE_QUOTES)
+                        propertyValueConverter.call(convertKlass.createInstance(), readValue)
+                    } else parse(tokens, parameterKlass)
             }
         }
 

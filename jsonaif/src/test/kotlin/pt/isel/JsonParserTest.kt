@@ -1,9 +1,6 @@
 package pt.isel
 
-import pt.isel.sample.Account
-import pt.isel.sample.Classroom
-import pt.isel.sample.Person
-import pt.isel.sample.Student
+import pt.isel.sample.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -94,7 +91,7 @@ class JsonParserTest {
 
     @Test fun parseListOfStudentsWithDifferentPropertyNames() {
         val json = "[{student_number: 1234, student_name: \"Tomas Barroco\"}, {student_number: 4321, student_name: \"Alexander Woods\"}]"
-        val ps = JsonParserReflect.parse(json, Student::class) as List<Student>
+        val ps = JsonParserReflect.parse(json, StudentAlternative::class) as List<StudentAlternative>
         assertEquals(1234, ps[0].nr)
         assertEquals("Tomas Barroco", ps[0].name)
         assertEquals(4321, ps[1].nr)
@@ -103,18 +100,28 @@ class JsonParserTest {
 
     @Test fun parsePersonWithDifferentPropertyNames(){
         val json = "{person_id: 410, person_name: \"Coelho Pascoa\"}"
-        val ps = JsonParserReflect.parse(json, Person::class) as Person
+        val ps = JsonParserReflect.parse(json, PersonAlternative::class) as PersonAlternative
         assertEquals(410, ps.id)
         assertEquals("Coelho Pascoa", ps.name)
     }
 
     @Test fun parseStudentWithDatePropertyUsingJsonConvert(){
-        val json = "{ name: \"Maria Papoila\", nr: 73753, birth: \"1998-11-17\" }"
-        val ps = JsonParserReflect.parse(json, Student::class) as Student
+        val json = "{ student_name: \"Maria Papoila\", student_number: 73753, birth: \"1998-11-17\" }"
+        val ps = JsonParserReflect.parse(json, StudentAlternative::class) as StudentAlternative
         assertEquals("Maria Papoila", ps.name)
         assertEquals(73753, ps.nr)
         assertEquals(1998, ps.birth?.year)
         assertEquals(11, ps.birth?.month)
         assertEquals(17, ps.birth?.day)
+    }
+
+    @Test fun parseTeacherWithDatePropertyUsingJsonConverter(){
+        val json = "{ name: \"Tomas Carvalho\", nr: 42060, birth: \"1999-01-22\" }"
+        val ps = JsonParserReflect.parse(json, Teacher::class) as Teacher
+        assertEquals("Tomas Carvalho", ps.name)
+        assertEquals(42060, ps.nr)
+        assertEquals(1999, ps.birth.year)
+        assertEquals(1, ps.birth.month)
+        assertEquals(22, ps.birth.day)
     }
 }
