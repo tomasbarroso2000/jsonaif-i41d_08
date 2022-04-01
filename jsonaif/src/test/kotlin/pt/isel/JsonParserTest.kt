@@ -107,4 +107,14 @@ class JsonParserTest {
         assertEquals(410, ps.id)
         assertEquals("Coelho Pascoa", ps.name)
     }
+
+    @Test fun parseStudentWithDatePropertyUsingJsonConvert(){
+        val json = "{ name: \"Maria Papoila\", nr: 73753, birth: \"1998-11-17\" }"
+        val ps = JsonParserReflect.parse(json, Student::class) as Student
+        assertEquals("Maria Papoila", ps.name)
+        assertEquals(73753, ps.nr)
+        assertEquals(1998, ps.birth?.year)
+        assertEquals(11, ps.birth?.month)
+        assertEquals(17, ps.birth?.day)
+    }
 }

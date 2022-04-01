@@ -1,4 +1,6 @@
 package pt.isel
 
+import kotlin.reflect.KClass
+
 @Target(AnnotationTarget.PROPERTY, AnnotationTarget.VALUE_PARAMETER)
-annotation class JsonProperty(val readAs: String)
+annotation class JsonConvert(val convertTo: KClass<*>)

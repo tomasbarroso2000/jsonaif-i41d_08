@@ -123,6 +123,12 @@ object JsonParserReflect  : AbstractJsonParser() {
             .map { it as KMutableProperty<*> }
             .forEach { prop ->
                 val propertyName = prop.findAnnotation<JsonProperty>()?.readAs ?: prop.name
+                val convertKlass = prop.findAnnotation<JsonConvert>()?.convertTo
+                val propertyValueConverter =
+                    convertKlass
+                        ?.let { klass ->
+                            klass.declaredFunctions.find { it.name == "convert" }
+                        }
                 map[propertyName] = object : Setter {
 
                     val propertyKlass = prop.returnType.let { returnType->
@@ -132,8 +138,12 @@ object JsonParserReflect  : AbstractJsonParser() {
                     }
 
                     override fun apply(target: Any, tokens: JsonTokens) {
-                        println(propertyKlass.qualifiedName)
-                        val propertyValue = parse(tokens, propertyKlass)
+                        val propertyValue =
+                            if (propertyValueConverter != null) {
+                                tokens.pop(DOUBLE_QUOTES)
+                                val readValue = tokens.popWordFinishedWith(DOUBLE_QUOTES)
+                                propertyValueConverter.call(convertKlass.createInstance(), readValue)
+                            } else parse(tokens, propertyKlass)
                         prop.setter.call(target, propertyValue)
                     }
                 }
