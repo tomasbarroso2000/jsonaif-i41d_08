@@ -10,7 +10,8 @@ import javax.tools.ToolProvider
 
 
 private val root = File("./build")
-private val classLoader = URLClassLoader.newInstance(arrayOf(root.toURI().toURL()))
+private val javapoetDir = File("./build/javapoet")
+private val classLoader = URLClassLoader.newInstance(arrayOf(javapoetDir.toURI().toURL()))
 private val compiler = ToolProvider.getSystemJavaCompiler()
 
 fun createSource(className: String): JavaFile {
@@ -21,9 +22,14 @@ fun createSource(className: String): JavaFile {
         .addStatement("\$T.out.println(\$S)", System::class.java, "Hello, JavaPoet!")
         .build()
 
+    val constructor = MethodSpec.constructorBuilder()
+        .addModifiers(Modifier.PUBLIC)
+        .build()
+
     val helloWorld = TypeSpec.classBuilder(className)
-        .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+        .addModifiers(Modifier.PUBLIC)
         .addMethod(main)
+        .addMethod(constructor)
         .build()
 
     return JavaFile.builder("javapoet", helloWorld)
@@ -36,7 +42,8 @@ fun loadAndCreateInstance(source: JavaFile): Any {
 
     println(source.typeSpec.name)
     // Compile source file.
-    compiler.run(null, null, null, "${root.path}/javapoet/${source.typeSpec.name}.java")
+    compiler.run(null, null, null, "${root.path}/${source.typeSpec.name}.java")
+    //compiler.run(null, null, null, "${javapoetDir.path}/${source.typeSpec.name}.java")
 
     // Load and instantiate compiled class.
     return classLoader
@@ -46,5 +53,5 @@ fun loadAndCreateInstance(source: JavaFile): Any {
 }
 
 fun main() {
-    loadAndCreateInstance(createSource("yes"))
+    val yes: Any = loadAndCreateInstance(createSource("yes"))
 }
