@@ -78,22 +78,26 @@ fun createSetters(klass: KClass<*>): List<JavaFile> {
                         } else JsonParserDynamic.parse(tokens, propertyKlass)
              */
             val apply = MethodSpec.methodBuilder("apply")
-                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .addModifiers(Modifier.PUBLIC)
                 .returns(Void.TYPE)
-                .addParameter(klass.java, "target")
+                .addParameter(Any::class.java, "target")
                 .addParameter(JsonTokens::class.java, "tokens")
                 .addStatement(
-                    "$propertyType v = pt.isel.JsonParserDynamic.INSTANCE.parse(tokens, JvmClassMappingKt.getKotlinClass($propertyType.class))"
+                    "$propertyType v = ($propertyType) pt.isel.JsonParserDynamic.INSTANCE.parse(tokens, kotlin.jvm.JvmClassMappingKt.getKotlinClass($propertyType.class))"
                 )
+                //.addStatement("", kotlin.j)
                 .addStatement(
-                    "target.${getSetterName(propertyName)}(v)"
+                    "((${klass.qualifiedName}) target).${getSetterName(propertyName)}(v)", klass
                 )
                 .build()
 
+            val ctr = MethodSpec.constructorBuilder().addModifiers(Modifier.PUBLIC).build()
+
             val newClass = TypeSpec.classBuilder(className)
                 .addSuperinterface(Setter::class.java)
-                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                .addModifiers(Modifier.PUBLIC)
                 .addMethod(apply)
+                .addMethod(ctr)
                 .build()
 
             list.add(JavaFile.builder("", newClass).build())
