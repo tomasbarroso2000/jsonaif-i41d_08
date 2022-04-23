@@ -1,5 +1,6 @@
 package pt.isel
 
+import com.squareup.javapoet.FieldSpec
 import com.squareup.javapoet.JavaFile
 import com.squareup.javapoet.MethodSpec
 import com.squareup.javapoet.TypeSpec
@@ -8,7 +9,6 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.full.createInstance
 import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.jvm.javaMethod
 
 fun getSetterClassName(klass: KClass<*>, propertyName: String) = "Setter${klass.simpleName}_$propertyName"
 
@@ -66,6 +66,25 @@ fun buildSetterFile(javaFiles: MutableList<JavaFile>, klass: KClass<*>, property
     else
         propertyType
 
+    /**
+    public class SetterStudentAlternative_birth implements Setter {
+        private final Converter converter = new ConverterDate()
+        public void apply(Object target, JsonTokens tokens) {
+            tokens.pop('"');
+            String readValue = tokens.popWordFinishedWith('"');
+            Date v = (Date) new ConverterDate().convert(readValue);
+            ((StudentAlternative) target).setBirth(v);
+        }
+    }
+     */
+    val converterField =
+        converter?.let {
+            FieldSpec.builder(Converter::class.java, "converter")
+                .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
+                .initializer("new \$T()", it.java)
+                .build()
+        }
+
     val apply = MethodSpec.methodBuilder("apply")
         .addModifiers(Modifier.PUBLIC)
         .addParameter(Any::class.java, "target")
@@ -74,10 +93,10 @@ fun buildSetterFile(javaFiles: MutableList<JavaFile>, klass: KClass<*>, property
             if(converter != null) {
                 it.addStatement("tokens.pop('\$L')", DOUBLE_QUOTES)
                 it.addStatement("String readValue = tokens.popWordFinishedWith('\$L')", DOUBLE_QUOTES)
-                it.addStatement("\$T v = (\$T) new \$T().convert(readValue)",
+                it.addStatement("\$T v = (\$T) \$N.convert(readValue)",
                     propertyType,
                     propertyType,
-                    converter.java
+                    converterField
                 )
             } else {
                 it.addStatement(
@@ -98,6 +117,11 @@ fun buildSetterFile(javaFiles: MutableList<JavaFile>, klass: KClass<*>, property
     val newClass = TypeSpec.classBuilder(className)
         .addSuperinterface(Setter::class.java)
         .addModifiers(Modifier.PUBLIC)
+        .let {
+            if (converterField != null)
+               it.addField(converterField)
+            it
+        }
         .addMethod(apply)
         .build()
 
