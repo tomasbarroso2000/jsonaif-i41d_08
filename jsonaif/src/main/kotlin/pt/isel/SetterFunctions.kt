@@ -8,6 +8,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.full.createInstance
 import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.jvm.javaMethod
 
 fun getSetterClassName(klass: KClass<*>, propertyName: String) = "Setter${klass.simpleName}_$propertyName"
 
@@ -54,10 +55,6 @@ fun buildSetterFile(javaFiles: MutableList<JavaFile>, klass: KClass<*>, property
 
     // Handle converter if there is one
     val converter = property.findAnnotation<JsonConvert>()?.converter
-    val propertyValueConverter = converter?.let {
-        val c = it.createInstance() as Converter
-        c::convert
-    }
 
     // Create setter classes
     val returnType = property.returnType
@@ -69,26 +66,29 @@ fun buildSetterFile(javaFiles: MutableList<JavaFile>, klass: KClass<*>, property
     else
         propertyType
 
-    /*
-    Not checking this
-    val propertyValue =
-                if (propertyValueConverter != null) {
-                    tokens.pop(DOUBLE_QUOTES)
-                    val readValue = tokens.popWordFinishedWith(DOUBLE_QUOTES)
-                    propertyValueConverter.call(readValue)
-                } else JsonParserDynamic.parse(tokens, propertyKlass)
-     */
     val apply = MethodSpec.methodBuilder("apply")
         .addModifiers(Modifier.PUBLIC)
         .addParameter(Any::class.java, "target")
         .addParameter(JsonTokens::class.java, "tokens")
-        .addStatement(
-            "\$T v = (\$T) \$T.INSTANCE.parse(tokens, kotlin.jvm.JvmClassMappingKt.getKotlinClass(\$T.class))",
-            propertyType,
-            propertyType,
-            JsonParserDynamic::class.java,
-            elementType
-        )
+        .let {
+            if(converter != null) {
+                it.addStatement("tokens.pop('\$L')", DOUBLE_QUOTES)
+                it.addStatement("String readValue = tokens.popWordFinishedWith('\$L')", DOUBLE_QUOTES)
+                it.addStatement("\$T v = (\$T) new \$T().convert(readValue)",
+                    propertyType,
+                    propertyType,
+                    converter.java
+                )
+            } else {
+                it.addStatement(
+                    "\$T v = (\$T) \$T.INSTANCE.parse(tokens, kotlin.jvm.JvmClassMappingKt.getKotlinClass(\$T.class))",
+                    propertyType,
+                    propertyType,
+                    JsonParserDynamic::class.java,
+                    elementType
+                )
+            }
+        }
         .addStatement(
             "((\$T) target).set${propertyName.replaceFirstChar { it.uppercase() }}(v)",
             klass.java
