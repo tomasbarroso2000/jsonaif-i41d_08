@@ -1,5 +1,7 @@
 package pt.isel
 
+import com.squareup.javapoet.JavaFile
+import java.io.FilenameFilter
 import kotlin.reflect.*
 import kotlin.reflect.full.*
 
@@ -44,8 +46,10 @@ object JsonParserDynamic  : AbstractJsonParser() {
         // Create initial instance
         val instance = klass.createInstance()
 
-        // Create setter functions if they don't already exist
-        setters.computeIfAbsent(klass, ::createSetterFunctions)
+        // Create setter files if they don't already exist
+        if (root.listFiles().none { it.name.startsWith("Setter${klass.simpleName}_") }) {
+            createSetterFiles(klass)
+        }
 
         // Start of object
         tokens.pop(OBJECT_OPEN)
@@ -66,7 +70,10 @@ object JsonParserDynamic  : AbstractJsonParser() {
         val propertyName = tokens.popWordFinishedWith(COLON).trim()
 
         // Apply the new value of the property
-        instance?.let { setters[klass]?.get(propertyName)?.apply(instance, tokens) }
+        instance?.let {
+            val setter = loadAndCreateInstance(getSetterClassName(klass, propertyName))?.let { it as Setter }
+            setter?.apply(instance, tokens)
+        }
 
         // Pop token content until it reaches another property or the end of object to prevent non-existing properties
         while (tokens.current != COMMA && tokens.current != OBJECT_END) tokens.pop()
@@ -75,52 +82,19 @@ object JsonParserDynamic  : AbstractJsonParser() {
         if (tokens.current == COMMA) tokens.pop(COMMA)
     }
 
-    private fun createSetterFunctions(klass: KClass<*>) : Map<String, Setter> {
+    private fun createSetterFiles(klass: KClass<*>) {
 
         // Map of setter functions
-        val map = mutableMapOf<String, Setter>()
+        val javaFiles = mutableListOf<JavaFile>()
 
         // Build setter object
         klass
             .declaredMemberProperties
             .filter { it is KMutableProperty<*> }
             .map { it as KMutableProperty<*> }
-            .forEach { prop ->
-                val propertyName = prop.findAnnotation<JsonProperty>()?.readAs ?: prop.name
+            .forEach { prop -> buildSetterFile(javaFiles, klass, prop) }
 
-                // Handle converter if there is one
-                val converter = prop.findAnnotation<JsonConvert>()?.converter
-                val propertyValueConverter = converter?.let {
-                    val c = it.createInstance() as Converter
-                    c::convert
-                }
-
-                // Put the new setter in the map
-                map[propertyName] = object : Setter {
-
-                    // Handle property KClass because it works differently with collections
-                    val propertyKlass = prop.returnType.let { returnType->
-                        val arguments = returnType.arguments
-                        if (arguments.isNotEmpty()) arguments[0].type?.classifier as KClass<*>
-                        else returnType.classifier as KClass<*>
-                    }
-
-                    override fun apply(target: Any, tokens: JsonTokens) {
-
-                        // Manually convert instead of using parse when there is a converter
-                        val propertyValue =
-                            if (propertyValueConverter != null) {
-                                tokens.pop(DOUBLE_QUOTES)
-                                val readValue = tokens.popWordFinishedWith(DOUBLE_QUOTES)
-                                propertyValueConverter.call(readValue)
-                            } else parse(tokens, propertyKlass)
-
-                        // Setting the value of the property to the target instance
-                        prop.setter.call(target, propertyValue)
-                    }
-                }
-            }
-        return map
+        javaFiles.forEach { saveAndCompile(it) }
     }
 
     /**

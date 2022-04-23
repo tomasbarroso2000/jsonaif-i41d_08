@@ -85,41 +85,7 @@ object JsonParserReflect  : AbstractJsonParser() {
             .declaredMemberProperties
             .filter { it is KMutableProperty<*> }
             .map { it as KMutableProperty<*> }
-            .forEach { prop ->
-                val propertyName = prop.findAnnotation<JsonProperty>()?.readAs ?: prop.name
-
-                // Handle converter if there is one
-                val converter = prop.findAnnotation<JsonConvert>()?.converter
-                val propertyValueConverter = converter?.let {
-                    val c = it.createInstance() as Converter
-                    c::convert
-                }
-
-                // Put the new setter in the map
-                map[propertyName] = object : Setter {
-
-                    // Handle property KClass because it works differently with collections
-                    val propertyKlass = prop.returnType.let { returnType->
-                        val arguments = returnType.arguments
-                        if (arguments.isNotEmpty()) arguments[0].type?.classifier as KClass<*>
-                        else returnType.classifier as KClass<*>
-                    }
-
-                    override fun apply(target: Any, tokens: JsonTokens) {
-
-                        // Manually convert instead of using parse when there is a converter
-                        val propertyValue =
-                            if (propertyValueConverter != null) {
-                                tokens.pop(DOUBLE_QUOTES)
-                                val readValue = tokens.popWordFinishedWith(DOUBLE_QUOTES)
-                                propertyValueConverter.call(readValue)
-                            } else parse(tokens, propertyKlass)
-
-                        // Setting the value of the property to the target instance
-                        prop.setter.call(target, propertyValue)
-                    }
-                }
-            }
+            .forEach { prop -> addPropertySetter(map, prop) }
         return map
     }
 
