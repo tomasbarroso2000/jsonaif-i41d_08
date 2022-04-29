@@ -1,17 +1,10 @@
 package pt.isel
 
 import com.squareup.javapoet.JavaFile
-import java.io.FilenameFilter
 import kotlin.reflect.*
 import kotlin.reflect.full.*
 
 object JsonParserDynamic  : AbstractJsonParser() {
-
-    /**
-     * For each domain class we keep a Map<String, Setter> relating properties names with their setters.
-     * This is for Part 2 of Jsonaif workout.
-     */
-    private val setters = mutableMapOf<KClass<*>, Map<String, Setter>>()
 
     /**
      * Used when some properties need to be used directly in the constructor.
@@ -47,10 +40,11 @@ object JsonParserDynamic  : AbstractJsonParser() {
         val instance = klass.createInstance()
 
         // Create setter files if they don't already exist
-        if (root.listFiles().none { it.name.startsWith("Setter${klass.simpleName}_") }) {
-            createSetterFiles(klass)
+        root.listFiles()?.let{
+            if (it.none { file -> file.name.startsWith("Setter${klass.simpleName}_") }) {
+                createSetterFiles(klass)
+            }
         }
-
         // Start of object
         tokens.pop(OBJECT_OPEN)
 

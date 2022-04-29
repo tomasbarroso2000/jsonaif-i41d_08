@@ -10,6 +10,7 @@ import kotlin.reflect.KMutableProperty
 import kotlin.reflect.full.createInstance
 import kotlin.reflect.full.findAnnotation
 
+// Build the class name for the setter class
 fun getSetterClassName(klass: KClass<*>, propertyName: String) = "Setter${klass.simpleName}_$propertyName"
 
 fun addPropertySetter(mapOfSetters: MutableMap<String, Setter>, property: KMutableProperty<*>) {
@@ -26,7 +27,7 @@ fun addPropertySetter(mapOfSetters: MutableMap<String, Setter>, property: KMutab
     mapOfSetters[propertyName] = object : Setter {
 
         // Handle property KClass because it works differently with collections
-        val propertyKlass = property.returnType.let { returnType->
+        val propertyKlass = property.returnType.let { returnType ->
             val arguments = returnType.arguments
             if (arguments.isNotEmpty()) arguments[0].type?.classifier as KClass<*>
             else returnType.classifier as KClass<*>
@@ -60,23 +61,14 @@ fun buildSetterFile(javaFiles: MutableList<JavaFile>, klass: KClass<*>, property
     val returnType = property.returnType
     val propertyType = (returnType.classifier as KClass<*>).java
 
+    // Define the element type
     val arguments = returnType.arguments
     val elementType = if (arguments.isNotEmpty())
         (arguments[0].type?.classifier as KClass<*>).java
     else
         propertyType
 
-    /**
-    public class SetterStudentAlternative_birth implements Setter {
-        private final Converter converter = new ConverterDate()
-        public void apply(Object target, JsonTokens tokens) {
-            tokens.pop('"');
-            String readValue = tokens.popWordFinishedWith('"');
-            Date v = (Date) new ConverterDate().convert(readValue);
-            ((StudentAlternative) target).setBirth(v);
-        }
-    }
-     */
+    // Build the converter field if necessary
     val converterField =
         converter?.let {
             FieldSpec.builder(Converter::class.java, "converter")
@@ -85,11 +77,13 @@ fun buildSetterFile(javaFiles: MutableList<JavaFile>, klass: KClass<*>, property
                 .build()
         }
 
+    // Build the apply method of the Setter interface
     val apply = MethodSpec.methodBuilder("apply")
         .addModifiers(Modifier.PUBLIC)
         .addParameter(Any::class.java, "target")
         .addParameter(JsonTokens::class.java, "tokens")
         .let {
+            // If there is a converter apply it to the readValue
             if(converter != null) {
                 it.addStatement("tokens.pop('\$L')", DOUBLE_QUOTES)
                 it.addStatement("String readValue = tokens.popWordFinishedWith('\$L')", DOUBLE_QUOTES)
@@ -98,6 +92,7 @@ fun buildSetterFile(javaFiles: MutableList<JavaFile>, klass: KClass<*>, property
                     propertyType,
                     converterField
                 )
+            // If there is no converter parse it normally
             } else {
                 it.addStatement(
                     "\$T v = (\$T) \$T.INSTANCE.parse(tokens, kotlin.jvm.JvmClassMappingKt.getKotlinClass(\$T.class))",
@@ -108,12 +103,14 @@ fun buildSetterFile(javaFiles: MutableList<JavaFile>, klass: KClass<*>, property
                 )
             }
         }
+        // Call the property setter
         .addStatement(
             "((\$T) target).set${propertyName.replaceFirstChar { it.uppercase() }}(v)",
             klass.java
         )
         .build()
 
+    // Build the new class with the converter field (if there is one) and the apply method built before
     val newClass = TypeSpec.classBuilder(className)
         .addSuperinterface(Setter::class.java)
         .addModifiers(Modifier.PUBLIC)
@@ -125,5 +122,6 @@ fun buildSetterFile(javaFiles: MutableList<JavaFile>, klass: KClass<*>, property
         .addMethod(apply)
         .build()
 
+    // Add the created JavaFile to the list of JavaFiles
     javaFiles.add(JavaFile.builder("", newClass).build())
 }
