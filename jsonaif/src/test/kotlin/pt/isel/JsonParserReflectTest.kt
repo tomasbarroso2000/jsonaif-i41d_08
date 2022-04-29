@@ -4,7 +4,7 @@ import pt.isel.sample.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class JsonParserTest {
+class JsonParserReflectTest {
 
     @Test fun parseSimpleObjectViaProperties() {
         val json = "{ name: \"Ze Manel\", nr: 7353}"

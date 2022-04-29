@@ -11,7 +11,7 @@ import kotlin.reflect.full.createInstance
 import kotlin.reflect.full.findAnnotation
 
 // Build the class name for the setter class
-fun getSetterClassName(klass: KClass<*>, propertyName: String) = "Setter${klass.simpleName}_$propertyName"
+fun getSetterClassName(className: String?, propertyName: String) = "Setter${className}_$propertyName"
 
 fun addPropertySetter(mapOfSetters: MutableMap<String, Setter>, property: KMutableProperty<*>) {
     val propertyName = property.findAnnotation<JsonProperty>()?.readAs ?: property.name
@@ -49,10 +49,10 @@ fun addPropertySetter(mapOfSetters: MutableMap<String, Setter>, property: KMutab
     }
 }
 
-fun buildSetterFile(javaFiles: MutableList<JavaFile>, klass: KClass<*>, property: KMutableProperty<*>) {
+fun buildSetterFile(mapOfSetters: MutableMap<String, Setter> , klass: KClass<*>, property: KMutableProperty<*>) {
     val propertyName = property.name
     val jsonProperty = property.findAnnotation<JsonProperty>()?.readAs
-    val className = getSetterClassName(klass, jsonProperty ?: propertyName)
+    val className = getSetterClassName(klass.simpleName, jsonProperty ?: propertyName)
 
     // Handle converter if there is one
     val converter = property.findAnnotation<JsonConvert>()?.converter
@@ -122,6 +122,8 @@ fun buildSetterFile(javaFiles: MutableList<JavaFile>, klass: KClass<*>, property
         .addMethod(apply)
         .build()
 
-    // Add the created JavaFile to the list of JavaFiles
-    javaFiles.add(JavaFile.builder("", newClass).build())
+    val javaFile = JavaFile.builder("", newClass).build()
+
+    // Add an instance of the created class to the map of setters
+    mapOfSetters[jsonProperty ?: propertyName] = loadAndCreateInstance(javaFile) as Setter
 }

@@ -17,6 +17,20 @@ fun saveAndCompile(source: JavaFile) {
     compiler.run(null, null, null, "${root.path}/${source.typeSpec.name}.java")
 }
 
+fun loadAndCreateInstance(source: JavaFile): Any {
+    // Save source in .java file.
+    source.writeToFile(root)
+
+    // Compile source file.
+    compiler.run(null, null, null, "${root.path}/${source.typeSpec.name}.java")
+
+    // Load and instantiate compiled class.
+    return classLoader
+        .loadClass(source.typeSpec.name)
+        .getDeclaredConstructor()
+        .newInstance()
+}
+
 fun loadAndCreateInstance(className: String): Any? {
     // Create instance of the given class name
     return loadClassIfExists(className)
