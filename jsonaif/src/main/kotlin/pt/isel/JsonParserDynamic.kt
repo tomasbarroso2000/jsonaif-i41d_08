@@ -1,14 +1,11 @@
 package pt.isel
 
+import pt.isel.setters.buildSetterFile
 import kotlin.reflect.*
 import kotlin.reflect.full.*
 
-object JsonParserDynamic  : AbstractJsonParser() {
+object JsonParserDynamic : AbstractJsonParser() {
 
-    /**
-     * For each domain class we keep a Map<String, Setter> relating properties names with their setters.
-     * This is for Part 2 of Jsonaif workout.
-     */
     private val setters = mutableMapOf<KClass<*>, Map<String, Setter>>()
 
     override fun parsePrimitive(tokens: JsonTokens, klass: KClass<*>): Any? {
@@ -32,7 +29,6 @@ object JsonParserDynamic  : AbstractJsonParser() {
     /**
      * Parsing with optional properties
      */
-
     private fun parseObjectOptional(tokens: JsonTokens, klass: KClass<*>): Any {
 
         // Create initial instance
@@ -82,12 +78,7 @@ object JsonParserDynamic  : AbstractJsonParser() {
                         files.forEach { file ->
                             val propertyName = file.name.split('_')[1]
                             map[propertyName] =
-                                loadAndCreateInstance(
-                                    getSetterClassName(
-                                        klass.simpleName,
-                                        propertyName
-                                    )
-                                ) as Setter
+                                loadAndCreateInstance(file.nameWithoutExtension) as Setter
                         }
                 }
         }

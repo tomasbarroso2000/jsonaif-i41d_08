@@ -1,9 +1,10 @@
-package pt.isel
+package pt.isel.setters
 
 import com.squareup.javapoet.FieldSpec
 import com.squareup.javapoet.JavaFile
 import com.squareup.javapoet.MethodSpec
 import com.squareup.javapoet.TypeSpec
+import pt.isel.*
 import javax.lang.model.element.Modifier
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty
@@ -11,7 +12,7 @@ import kotlin.reflect.full.createInstance
 import kotlin.reflect.full.findAnnotation
 
 // Build the class name for the setter class
-fun getSetterClassName(className: String?, propertyName: String) = "Setter${className}_$propertyName"
+private fun buildSetterClassName(className: String?, propertyName: String) = "Setter${className}_$propertyName"
 
 fun addPropertySetter(mapOfSetters: MutableMap<String, Setter>, property: KMutableProperty<*>) {
     val propertyName = property.findAnnotation<JsonProperty>()?.readAs ?: property.name
@@ -19,40 +20,20 @@ fun addPropertySetter(mapOfSetters: MutableMap<String, Setter>, property: KMutab
     // Handle converter if there is one
     val converter = property.findAnnotation<JsonConvert>()?.converter
     val propertyValueConverter = converter?.let {
-        val c = it.createInstance() as Converter
-        c::convert
+        it.createInstance() as Converter
     }
 
     // Create Setter object
-    mapOfSetters[propertyName] = object : Setter {
-
-        // Handle property KClass because it works differently with collections
-        val propertyKlass = property.returnType.let { returnType ->
-            val arguments = returnType.arguments
-            if (arguments.isNotEmpty()) arguments[0].type?.classifier as KClass<*>
-            else returnType.classifier as KClass<*>
-        }
-
-        override fun apply(target: Any, tokens: JsonTokens) {
-
-            // Manually convert instead of using parse when there is a converter
-            val propertyValue =
-                if (propertyValueConverter != null) {
-                    tokens.pop(DOUBLE_QUOTES)
-                    val readValue = tokens.popWordFinishedWith(DOUBLE_QUOTES)
-                    propertyValueConverter.call(readValue)
-                } else JsonParserReflect.parse(tokens, propertyKlass)
-
-            // Setting the value of the property to the target instance
-            property.setter.call(target, propertyValue)
-        }
-    }
+    if (propertyValueConverter != null)
+        mapOfSetters[propertyName] = SetterWithConverter(property, propertyValueConverter)
+    else
+        mapOfSetters[propertyName] = SetterWithoutConverter(property)
 }
 
-fun buildSetterFile(mapOfSetters: MutableMap<String, Setter> , klass: KClass<*>, property: KMutableProperty<*>) {
+fun buildSetterFile(mapOfSetters: MutableMap<String, Setter>, klass: KClass<*>, property: KMutableProperty<*>) {
     val propertyName = property.name
     val jsonProperty = property.findAnnotation<JsonProperty>()?.readAs
-    val className = getSetterClassName(klass.simpleName, jsonProperty ?: propertyName)
+    val className = buildSetterClassName(klass.simpleName, jsonProperty ?: propertyName)
 
     // Handle converter if there is one
     val converter = property.findAnnotation<JsonConvert>()?.converter

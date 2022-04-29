@@ -1,9 +1,10 @@
 package pt.isel
 
+import pt.isel.setters.addPropertySetter
 import kotlin.reflect.*
 import kotlin.reflect.full.*
 
-object JsonParserReflect  : AbstractJsonParser() {
+object JsonParserReflect : AbstractJsonParser() {
 
     /**
      * For each domain class we keep a Map<String, Setter> relating properties names with their setters.
