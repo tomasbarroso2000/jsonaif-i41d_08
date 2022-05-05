@@ -10,6 +10,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.full.createInstance
 import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.jvm.javaMethod
 
 // Build the class name for the setter class
 private fun buildSetterClassName(className: String?, propertyName: String) = "Setter${className}_$propertyName"
@@ -86,8 +87,9 @@ fun buildSetterFile(mapOfSetters: MutableMap<String, Setter>, klass: KClass<*>, 
         }
         // Call the property setter
         .addStatement(
-            "((\$T) target).set${propertyName.replaceFirstChar { it.uppercase() }}(v)",
-            klass.java
+            "((\$T) target).\$L(v)",
+            klass.java,
+            property.setter.javaMethod?.name
         )
         .build()
 
