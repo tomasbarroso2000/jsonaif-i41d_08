@@ -1,3 +1,3 @@
 package pt.isel
 
-data class Date(val day: Int, val month: Int, val year: Int)
+data class Date(var day: Int = 0, var month: Int = 0, var year: Int = 0)

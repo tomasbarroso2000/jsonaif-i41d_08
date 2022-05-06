@@ -72,4 +72,12 @@ class JsonParserDynamicTest {
         assertEquals(11, ps.birth?.month)
         assertEquals(17, ps.birth?.day)
     }
+
+    @Test fun parseDateAlternative(){
+        val json = "{day: 12, month: 12, year: 2012}"
+        val ps = JsonParserDynamic.parse(json, DateAlternative::class) as DateAlternative
+        assertEquals(12, ps.day)
+        assertEquals(12, ps.month)
+        assertEquals(2012, ps.year)
+    }
 }

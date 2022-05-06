@@ -5,9 +5,12 @@ import com.squareup.javapoet.JavaFile
 import com.squareup.javapoet.MethodSpec
 import com.squareup.javapoet.TypeSpec
 import pt.isel.*
+import java.lang.reflect.Type
 import javax.lang.model.element.Modifier
+import javax.swing.text.html.parser.Parser
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty
+import kotlin.reflect.KType
 import kotlin.reflect.full.createInstance
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.jvm.javaMethod
@@ -66,23 +69,34 @@ fun buildSetterFile(mapOfSetters: MutableMap<String, Setter>, klass: KClass<*>, 
         .addParameter(JsonTokens::class.java, "tokens")
         .let {
             // If there is a converter apply it to the readValue
-            if(converter != null) {
+            if (converter != null) {
                 it.addStatement("tokens.pop('\$L')", DOUBLE_QUOTES)
                 it.addStatement("String readValue = tokens.popWordFinishedWith('\$L')", DOUBLE_QUOTES)
-                it.addStatement("\$T v = (\$T) \$N.convert(readValue)",
+                it.addStatement(
+                    "\$T v = (\$T) \$N.convert(readValue)",
                     propertyType,
                     propertyType,
                     converterField
                 )
             // If there is no converter parse it normally
             } else {
-                it.addStatement(
-                    "\$T v = (\$T) \$T.INSTANCE.parse(tokens, kotlin.jvm.JvmClassMappingKt.getKotlinClass(\$T.class))",
-                    propertyType,
-                    propertyType,
-                    JsonParserDynamic::class.java,
-                    elementType
-                )
+                val primitiveParser = parserMap[propertyType.kotlin]
+                if (primitiveParser != null) {
+                    it.addStatement("String readValue = tokens.popWordPrimitive()")
+                    it.addStatement(
+                        "\$T v = \$L(readValue)",
+                        propertyType,
+                        primitiveParser
+                    )
+                } else {
+                    it.addStatement(
+                        "\$T v = (\$T) \$T.INSTANCE.parse(tokens, kotlin.jvm.JvmClassMappingKt.getKotlinClass(\$T.class))",
+                        propertyType,
+                        propertyType,
+                        JsonParserDynamic::class.java,
+                        elementType
+                    )
+                }
             }
         }
         // Call the property setter
@@ -110,3 +124,14 @@ fun buildSetterFile(mapOfSetters: MutableMap<String, Setter>, klass: KClass<*>, 
     // Add an instance of the created class to the map of setters
     mapOfSetters[jsonProperty ?: propertyName] = loadAndCreateInstance(javaFile) as Setter
 }
+
+val parserMap: Map<KClass<*>, String> = mapOf(
+    Byte::class to "Byte.parseByte",
+    Short::class to "Short.parseShort",
+    Int::class to "Integer.parseInt",
+    Long::class to "Long.parseLong",
+    Float::class to "Float.parseFloat",
+    Double::class to "Double.parseDouble",
+    Boolean::class to "Boolean.parseBoolean",
+    Char::class to "Char.parseChar"
+)

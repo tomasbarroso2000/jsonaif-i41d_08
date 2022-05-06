@@ -1,3 +1,3 @@
 package pt.isel
 
-data class Student (val nr: Int, val name: String)
+data class Student (var nr: Int = 0, var name: String? = null)

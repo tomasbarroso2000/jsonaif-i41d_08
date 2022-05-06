@@ -7,3 +7,8 @@ fun parsePerson(json: String, parser: JsonParser) : Person {
 fun parseDate(json: String, parser: JsonParser) : Date {
     return parser.parse(json, Date::class) as Date
 }
+
+fun parseStudent(json: String, parser: JsonParser) : Student {
+    return parser.parse(json, Student::class) as Student
+}
+
