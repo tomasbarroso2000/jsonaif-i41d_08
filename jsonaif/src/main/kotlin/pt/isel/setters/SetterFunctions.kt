@@ -5,18 +5,27 @@ import com.squareup.javapoet.JavaFile
 import com.squareup.javapoet.MethodSpec
 import com.squareup.javapoet.TypeSpec
 import pt.isel.*
-import java.lang.reflect.Type
 import javax.lang.model.element.Modifier
-import javax.swing.text.html.parser.Parser
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty
-import kotlin.reflect.KType
 import kotlin.reflect.full.createInstance
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.jvm.javaMethod
 
 // Build the class name for the setter class
 private fun buildSetterClassName(className: String?, propertyName: String) = "Setter${className}_$propertyName"
+
+// Map to parse primitives faster
+val parserMap: Map<KClass<*>, String> = mapOf(
+    Byte::class to "Byte.parseByte",
+    Short::class to "Short.parseShort",
+    Int::class to "Integer.parseInt",
+    Long::class to "Long.parseLong",
+    Float::class to "Float.parseFloat",
+    Double::class to "Double.parseDouble",
+    Boolean::class to "Boolean.parseBoolean",
+    Char::class to "Char.parseChar"
+)
 
 fun addPropertySetter(mapOfSetters: MutableMap<String, Setter>, property: KMutableProperty<*>) {
     val propertyName = property.findAnnotation<JsonProperty>()?.readAs ?: property.name
@@ -82,7 +91,7 @@ fun buildSetterFile(mapOfSetters: MutableMap<String, Setter>, klass: KClass<*>, 
             } else {
                 val primitiveParser = parserMap[propertyType.kotlin]
                 if (primitiveParser != null) {
-                    it.addStatement("String readValue = tokens.popWordPrimitive()")
+                    it.addStatement("String readValue = tokens.popWordPrimitive().trim()")
                     it.addStatement(
                         "\$T v = \$L(readValue)",
                         propertyType,
@@ -124,14 +133,3 @@ fun buildSetterFile(mapOfSetters: MutableMap<String, Setter>, klass: KClass<*>, 
     // Add an instance of the created class to the map of setters
     mapOfSetters[jsonProperty ?: propertyName] = loadAndCreateInstance(javaFile) as Setter
 }
-
-val parserMap: Map<KClass<*>, String> = mapOf(
-    Byte::class to "Byte.parseByte",
-    Short::class to "Short.parseShort",
-    Int::class to "Integer.parseInt",
-    Long::class to "Long.parseLong",
-    Float::class to "Float.parseFloat",
-    Double::class to "Double.parseDouble",
-    Boolean::class to "Boolean.parseBoolean",
-    Char::class to "Char.parseChar"
-)

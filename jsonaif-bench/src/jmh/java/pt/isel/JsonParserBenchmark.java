@@ -1,6 +1,5 @@
 package pt.isel;
 
-import kotlin.reflect.KClass;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -23,9 +22,7 @@ public class JsonParserBenchmark {
     public Person benchJsonParserPersonViaReflection() { return parsePerson(person, jsonParserReflect); }
 
     @Benchmark
-    public Person benchJsonParserPersonViaDynamic() {
-        return parsePerson(person, jsonParserDynamic);
-    }
+    public Person benchJsonParserPersonViaDynamic() { return parsePerson(person, jsonParserDynamic); }
 
     @Benchmark
     public Date benchJsonParserDateViaReflection() { return parseDate(date, jsonParserReflect); }

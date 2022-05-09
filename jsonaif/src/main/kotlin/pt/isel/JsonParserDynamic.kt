@@ -9,7 +9,7 @@ object JsonParserDynamic : AbstractJsonParser() {
     private val setters = mutableMapOf<KClass<*>, Map<String, Setter>>()
 
     override fun parsePrimitive(tokens: JsonTokens, klass: KClass<*>): Any? {
-        val string = tokens.popWordPrimitive()
+        val string = tokens.popWordPrimitive().trim()
         return basicParser[klass]?.let { it(string) }
     }
 
@@ -70,26 +70,28 @@ object JsonParserDynamic : AbstractJsonParser() {
         // Map of setter functions
         val map = mutableMapOf<String, Setter>()
 
-        // Create setter files if they don't already exist
         root.listFiles()?.let{ filesList ->
-            filesList.filter { file -> file.name.startsWith("Setter${klass.simpleName}_") }
+            filesList
+                .filter { file ->
+                    file.name.startsWith("Setter${klass.simpleName}_") && file.name.endsWith(".class")
+                }
                 .let { files ->
+                    // Load setter files if they already exist
                     if (files.isNotEmpty())
                         files.forEach { file ->
-                            val propertyName = file.name.split('_')[1]
+                            val propertyName = file.nameWithoutExtension.split('_', limit = 2)[1]
                             map[propertyName] =
                                 loadAndCreateInstance(file.nameWithoutExtension) as Setter
                         }
+                    // Build setter files if they don't already exist
+                    else
+                        klass
+                            .declaredMemberProperties
+                            .filter { it is KMutableProperty<*> }
+                            .map { it as KMutableProperty<*> }
+                            .forEach { prop -> buildSetterFile(map, klass, prop) }
                 }
         }
-
-        // Build setter object
-        klass
-            .declaredMemberProperties
-            .filter { it is KMutableProperty<*> }
-            .map { it as KMutableProperty<*> }
-            .forEach { prop -> buildSetterFile(map, klass, prop) }
-
         return map
     }
 

@@ -19,7 +19,7 @@ object JsonParserReflect : AbstractJsonParser() {
     private val constructorParameters = mutableMapOf<KClass<*>, Map<KParameter, KClass<*>>>()
     
     override fun parsePrimitive(tokens: JsonTokens, klass: KClass<*>): Any? {
-        val string = tokens.popWordPrimitive()
+        val string = tokens.popWordPrimitive().trim()
         return basicParser[klass]?.let { it(string) }
     }
 
