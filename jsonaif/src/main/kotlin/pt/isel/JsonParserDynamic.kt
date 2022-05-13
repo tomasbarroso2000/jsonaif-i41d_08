@@ -70,29 +70,15 @@ object JsonParserDynamic : AbstractJsonParser() {
         // Map of setter functions
         val map = mutableMapOf<String, Setter>()
 
-        root.listFiles()?.let{ filesList ->
-            filesList
-                .filter { file ->
-                    file.name.startsWith("Setter${klass.simpleName}_") && file.name.endsWith(".class")
-                }
-                .let { files ->
-                    // Load setter files if they already exist
-                    if (files.isNotEmpty())
-                        files.forEach { file ->
-                            val propertyName = file.nameWithoutExtension.split('_', limit = 2)[1]
-                            map[propertyName] =
-                                loadAndCreateInstance(file.nameWithoutExtension) as Setter
-                        }
-                    // Build setter files if they don't already exist
-                    else
-                        klass
-                            .declaredMemberProperties
-                            .filter { it is KMutableProperty<*> }
-                            .map { it as KMutableProperty<*> }
-                            .forEach { prop -> buildSetterFile(map, klass, prop) }
-                }
-        }
+        klass
+            .declaredMemberProperties
+            .filter { it is KMutableProperty<*> }
+            .map { it as KMutableProperty<*> }
+           .forEach { prop -> buildSetterFile(map, klass, prop) }
+
+
         return map
     }
 
 }
+
