@@ -22,20 +22,3 @@ fun loadAndCreateInstance(source: JavaFile): Any {
         .getDeclaredConstructor()
         .newInstance()
 }
-
-fun loadAndCreateInstance(className: String): Any? {
-    // Create instance of the given class name
-    return loadClassIfExists(className)
-        ?.getDeclaredConstructor()
-        ?.newInstance()
-}
-
-private fun loadClassIfExists(className: String): Class<*>? {
-    // Handles the exception if a class with the given name does not exist
-    return try {
-        classLoader
-            .loadClass(className)
-    } catch (e: ClassNotFoundException) {
-        null
-    }
-}

@@ -18,12 +18,12 @@ object JsonParserReflect : AbstractJsonParser() {
      */
     private val constructorParameters = mutableMapOf<KClass<*>, Map<KParameter, KClass<*>>>()
     
-    override fun parsePrimitive(tokens: JsonTokens, klass: KClass<*>): Any? {
+    override fun <T : Any> parsePrimitive(tokens: JsonTokens, klass: KClass<T>): T {
         val string = tokens.popWordPrimitive().trim()
-        return basicParser[klass]?.let { it(string) }
+        return basicParser[klass]?.let { it(string) } as T
     }
 
-    override fun parseObject(tokens: JsonTokens, klass: KClass<*>): Any? {
+    override fun <T : Any> parseObject(tokens: JsonTokens, klass: KClass<T>): T {
 
         // Verifying if there are any constructors that take no parameters
         val isParameterless = klass
@@ -33,14 +33,14 @@ object JsonParserReflect : AbstractJsonParser() {
 
         // Handle each case differently
         return if (isParameterless)  parseObjectOptional(tokens, klass)
-        else parseObjectNotOptional(tokens, klass)
+        else parseObjectNotOptional(tokens, klass) ?: throw Exception("Missing constructor parameters")
     }
 
     /**
      * Parsing with optional properties
      */
 
-    private fun parseObjectOptional(tokens: JsonTokens, klass: KClass<*>): Any {
+    private fun <T: Any> parseObjectOptional(tokens: JsonTokens, klass: KClass<T>): T {
 
         // Create initial instance
         val instance = klass.createInstance()
@@ -94,7 +94,7 @@ object JsonParserReflect : AbstractJsonParser() {
      * Parsing without optional properties
      */
 
-    private fun parseObjectNotOptional(tokens: JsonTokens, klass: KClass<*>): Any? {
+    private fun <T: Any> parseObjectNotOptional(tokens: JsonTokens, klass: KClass<T>): T? {
 
         // The constructor that will be called once the parameters are ready
         val constructor = klass.primaryConstructor
@@ -154,7 +154,12 @@ object JsonParserReflect : AbstractJsonParser() {
                         tokens.pop(DOUBLE_QUOTES)
                         val readValue = tokens.popWordFinishedWith(DOUBLE_QUOTES)
                         propertyValueConverter.call(readValue)
-                    } else parse(tokens, parameterKlass)
+                    } else {
+                        if (it.type.arguments.isEmpty())
+                            parse(tokens, parameterKlass)
+                        else
+                            parseArray(tokens, parameterKlass)
+                    }
             }
         }
 
@@ -173,7 +178,14 @@ object JsonParserReflect : AbstractJsonParser() {
         val constructor = klass.primaryConstructor
 
         // Insert parameters in the map
-        constructor?.parameters?.forEach { map[it] = it.type.classifier as KClass<*> }
+        constructor?.parameters?.forEach { parameter ->
+            val elementType = parameter.type.let { type ->
+                val arguments = type.arguments
+                if (arguments.isNotEmpty()) arguments[0].type?.classifier as KClass<*>
+                else type.classifier as KClass<*>
+            }
+            map[parameter] = elementType
+        }
         return map
     }
 }

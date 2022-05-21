@@ -39,8 +39,16 @@ fun addPropertySetter(mapOfSetters: MutableMap<String, Setter>, property: KMutab
     // Create Setter object
     if (propertyValueConverter != null)
         mapOfSetters[propertyName] = SetterWithConverter(property, propertyValueConverter)
-    else
-        mapOfSetters[propertyName] = SetterWithoutConverter(property)
+    else {
+        val elementType = property.returnType.let { returnType ->
+            val arguments = returnType.arguments
+            if (arguments.isNotEmpty()) arguments[0].type?.classifier as KClass<*>
+            else null
+        }
+        mapOfSetters[propertyName] =
+            if (elementType == null) SetterWithoutConverter(property)
+            else SetterWithoutConverterArray(property, elementType)
+    }
 }
 
 fun buildSetterFile(mapOfSetters: MutableMap<String, Setter>, klass: KClass<*>, property: KMutableProperty<*>) {
@@ -59,8 +67,7 @@ fun buildSetterFile(mapOfSetters: MutableMap<String, Setter>, klass: KClass<*>, 
     val arguments = returnType.arguments
     val elementType = if (arguments.isNotEmpty())
         (arguments[0].type?.classifier as KClass<*>).java
-    else
-        propertyType
+    else null
 
     // Build the converter field if necessary
     val converterField =
@@ -98,13 +105,24 @@ fun buildSetterFile(mapOfSetters: MutableMap<String, Setter>, klass: KClass<*>, 
                         primitiveParser
                     )
                 } else {
-                    it.addStatement(
-                        "\$T v = (\$T) \$T.INSTANCE.parse(tokens, kotlin.jvm.JvmClassMappingKt.getKotlinClass(\$T.class))",
-                        propertyType,
-                        propertyType,
-                        JsonParserDynamic::class.java,
-                        elementType
-                    )
+                    if (elementType == null) {
+                        it.addStatement(
+                            "\$T v = (\$T) \$T.INSTANCE.parse(tokens, kotlin.jvm.JvmClassMappingKt.getKotlinClass(\$T.class))",
+                            propertyType,
+                            propertyType,
+                            JsonParserDynamic::class.java,
+                            propertyType
+                        )
+                    } else {
+                        it.addStatement(
+                            "\$T v = (\$T) \$T.INSTANCE.parseArray(tokens, kotlin.jvm.JvmClassMappingKt.getKotlinClass(\$T.class))",
+                            propertyType,
+                            propertyType,
+                            JsonParserDynamic::class.java,
+                            elementType
+                        )
+                    }
+
                 }
             }
         }

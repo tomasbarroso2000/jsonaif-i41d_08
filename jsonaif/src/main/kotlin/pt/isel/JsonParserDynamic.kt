@@ -8,13 +8,12 @@ object JsonParserDynamic : AbstractJsonParser() {
 
     private val setters = mutableMapOf<KClass<*>, Map<String, Setter>>()
 
-    override fun parsePrimitive(tokens: JsonTokens, klass: KClass<*>): Any? {
+    override fun <T : Any> parsePrimitive(tokens: JsonTokens, klass: KClass<T>): T {
         val string = tokens.popWordPrimitive().trim()
-        return basicParser[klass]?.let { it(string) }
+        return basicParser[klass]?.let { it(string) } as T
     }
 
-    override fun parseObject(tokens: JsonTokens, klass: KClass<*>): Any {
-
+    override fun <T : Any> parseObject(tokens: JsonTokens, klass: KClass<T>): T {
         // Verifying if there are any constructors that take no parameters
         val isParameterless = klass
             .constructors
@@ -29,7 +28,7 @@ object JsonParserDynamic : AbstractJsonParser() {
     /**
      * Parsing with optional properties
      */
-    private fun parseObjectOptional(tokens: JsonTokens, klass: KClass<*>): Any {
+    private fun <T : Any> parseObjectOptional(tokens: JsonTokens, klass: KClass<T>): T {
 
         // Create initial instance
         val instance = klass.createInstance()

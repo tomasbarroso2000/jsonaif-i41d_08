@@ -4,8 +4,8 @@ import kotlin.reflect.KClass
 
 interface JsonParser {
 
-    fun <T> parse(source: String): T
+    fun <T : Any> parse(source: String, klass: KClass<T>): T
 
-    fun <T> parseArray(source: String): List<T>
+    fun <T : Any> parseArray(source: String, klass: KClass<T>): List<T>
 
 }

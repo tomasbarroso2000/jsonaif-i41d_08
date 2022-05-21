@@ -6,7 +6,7 @@ import kotlin.reflect.KClass
 annotation class JsonConvert(val converter: KClass<*> = EmptyConverter::class)
 
 class EmptyConverter : Converter {
-    override fun convert(str: String): Any? {
-        return  str
+    override fun convert(str: String): Any {
+        return str
     }
 }
