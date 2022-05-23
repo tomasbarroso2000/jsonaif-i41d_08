@@ -13,7 +13,7 @@ object JsonParserDynamic : AbstractJsonParser() {
         return basicParser[klass]?.let { it(string) } as T
     }
 
-    override fun <T : Any> parseObject(tokens: JsonTokens, klass: KClass<T>): T {
+    override fun <T : Any> parseObject(tokens: JsonTokens, klass: KClass<T>): T? {
         // Verifying if there are any constructors that take no parameters
         val isParameterless = klass
             .constructors
@@ -22,7 +22,7 @@ object JsonParserDynamic : AbstractJsonParser() {
 
         // Handle each case differently
         return if (isParameterless) parseObjectOptional(tokens, klass)
-        else throw IllegalArgumentException()
+        else null
     }
 
     /**

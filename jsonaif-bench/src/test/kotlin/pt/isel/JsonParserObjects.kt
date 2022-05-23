@@ -11,48 +11,48 @@ class JsonParserObjects {
     @Test fun parseAPersonReflect() {
         val json = "{ name: \"Ze Manel\", birth: { year: 1999, month: 9, day: 19} }"
         val person = parsePerson(json, JsonParserReflect)
-        assertEquals("Ze Manel", person.name)
-        assertEquals(19, person.birth?.day)
-        assertEquals(9, person.birth?.month)
-        assertEquals(1999, person.birth?.year)
+        assertEquals("Ze Manel", person?.name)
+        assertEquals(19, person?.birth?.day)
+        assertEquals(9, person?.birth?.month)
+        assertEquals(1999, person?.birth?.year)
     }
 
     @Test fun parseAPersonDynamic() {
         val json = "{ name: \"Ze Manel\", birth: { year: 1999, month: 9, day: 19} }"
         val person = parsePerson(json, JsonParserDynamic)
-        assertEquals("Ze Manel", person.name)
-        assertEquals(19, person.birth?.day)
-        assertEquals(9, person.birth?.month)
-        assertEquals(1999, person.birth?.year)
+        assertEquals("Ze Manel", person?.name)
+        assertEquals(19, person?.birth?.day)
+        assertEquals(9, person?.birth?.month)
+        assertEquals(1999, person?.birth?.year)
     }
 
     @Test fun parseADateReflect() {
         val json = "{ year: 1999, month: 9, day: 19}"
         val dt = parseDate(json, JsonParserReflect)
-        assertEquals(19, dt.day)
-        assertEquals(9, dt.month)
-        assertEquals(1999, dt.year)
+        assertEquals(19, dt?.day)
+        assertEquals(9, dt?.month)
+        assertEquals(1999, dt?.year)
     }
 
     @Test fun parseADateDynamic() {
         val json = "{ year: 1999, month: 9, day: 19}"
         val dt = parseDate(json, JsonParserDynamic)
-        assertEquals(19, dt.day)
-        assertEquals(9, dt.month)
-        assertEquals(1999, dt.year)
+        assertEquals(19, dt?.day)
+        assertEquals(9, dt?.month)
+        assertEquals(1999, dt?.year)
     }
 
     @Test fun parseAStudentReflect() {
         val json = "{ nr: 48999, name: \"Lord Farquaad\" }"
         val student = parseStudent(json, JsonParserReflect)
-        assertEquals(48999, student.nr)
-        assertEquals("Lord Farquaad", student.name)
+        assertEquals(48999, student?.nr)
+        assertEquals("Lord Farquaad", student?.name)
     }
 
     @Test fun parseAStudentDynamic() {
         val json = "{ nr: 48999, name: \"Lord Farquaad\" }"
         val student = parseStudent(json, JsonParserDynamic)
-        assertEquals(48999, student.nr)
-        assertEquals("Lord Farquaad", student.name)
+        assertEquals(48999, student?.nr)
+        assertEquals("Lord Farquaad", student?.name)
     }
 }

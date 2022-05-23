@@ -17,13 +17,13 @@ object JsonParserReflect : AbstractJsonParser() {
      * Keeps a Map<KParameter, KClass<*>> relating constructor parameters to their KClass
      */
     private val constructorParameters = mutableMapOf<KClass<*>, Map<KParameter, KClass<*>>>()
-    
+
     override fun <T : Any> parsePrimitive(tokens: JsonTokens, klass: KClass<T>): T {
         val string = tokens.popWordPrimitive().trim()
         return basicParser[klass]?.let { it(string) } as T
     }
 
-    override fun <T : Any> parseObject(tokens: JsonTokens, klass: KClass<T>): T {
+    override fun <T : Any> parseObject(tokens: JsonTokens, klass: KClass<T>): T? {
 
         // Verifying if there are any constructors that take no parameters
         val isParameterless = klass
@@ -33,7 +33,7 @@ object JsonParserReflect : AbstractJsonParser() {
 
         // Handle each case differently
         return if (isParameterless)  parseObjectOptional(tokens, klass)
-        else parseObjectNotOptional(tokens, klass) ?: throw Exception("Missing constructor parameters")
+        else parseObjectNotOptional(tokens, klass)
     }
 
     /**
@@ -115,7 +115,11 @@ object JsonParserReflect : AbstractJsonParser() {
 
         // End of object
         tokens.pop(OBJECT_END)
-        return constructor?.callBy(parameterValues)
+        return try {
+            constructor?.callBy(parameterValues)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private fun  parsePropertyNotOptional(
