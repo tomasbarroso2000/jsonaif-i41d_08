@@ -1,5 +1,8 @@
 package pt.isel
 
+
+
+import java.io.File
 import kotlin.reflect.KClass
 
 abstract class AbstractJsonParser : JsonParser {
@@ -14,6 +17,22 @@ abstract class AbstractJsonParser : JsonParser {
 
     override fun <T : Any> parseSequence(json: String, klass: KClass<T>): Sequence<T?> {
         return parseSequence(JsonTokens(json), klass)
+    }
+
+    override fun <T : Any> parseFolderEager(path: String, klass: KClass<T>): List<T?> {
+        val listOfFiles = mutableListOf<T?>()
+        File(path).listFiles()?.forEach {
+            val text = it.readText()
+            listOfFiles.add(parseObject(JsonTokens(text), klass))
+        }
+        return listOfFiles
+    }
+
+    override fun <T : Any> parseFolderLazy(path: String, klass: KClass<T>): Sequence<T?> = sequence {
+        File(path).listFiles()?.forEach {
+            val text = it.readText()
+            yield(parseObject(JsonTokens(text), klass))
+        }
     }
 
     fun <T : Any> parse(tokens: JsonTokens, klass: KClass<T>): T? {

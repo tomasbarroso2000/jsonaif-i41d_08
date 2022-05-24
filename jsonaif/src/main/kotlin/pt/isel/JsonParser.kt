@@ -8,7 +8,11 @@ interface JsonParser {
 
     fun <T : Any> parseArray(source: String, klass: KClass<T>): List<T?>
 
-    fun <T : Any> parseSequence(json: String, klass: KClass<T>): Sequence<T?>
+    fun <T : Any> parseSequence(source: String, klass: KClass<T>): Sequence<T?>
+
+    fun <T : Any> parseFolderEager(path: String, klass: KClass<T>): List<T?>
+
+    fun <T : Any> parseFolderLazy(path: String, klass: KClass<T>): Sequence<T?>
 
 }
 
@@ -25,4 +29,14 @@ inline fun <reified T : Any> JsonParser.parseArray(source: String): List<T?> {
 inline fun <reified T : Any> JsonParser.parseSequence(source: String): Sequence<T?> {
     val klass = T::class
     return this.parseSequence(source, klass)
+}
+
+inline fun <reified T : Any> JsonParser.parseFolderEager(path: String): List<T?> {
+    val klass = T::class
+    return this.parseFolderEager(path, klass)
+}
+
+inline fun <reified T : Any> JsonParser.parseFolderLazy(path: String): Sequence<T?> {
+    val klass = T::class
+    return this.parseFolderLazy(path, klass)
 }
