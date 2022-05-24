@@ -108,4 +108,28 @@ class JsonParserDynamicTest {
         val expected = sequenceOf(Student(48300, "Alexander German Woods"), Student(48333, "Thomas Barrosos"))
         assertContentEquals(expected, s)
     }
+
+    @Test fun parseFolderEagerWithFileChange() {
+        val path = "src/test/resources"
+        val s = JsonParserDynamic.parseFolderEager<Student>(path)
+        val iter = s.iterator()
+        while (iter.hasNext()) {
+            // change file
+            // assert
+        }
+        //val expected = listOf(Student(48300, "Alexander German Woods"), Student(48333, "Thomas Barrosos"))
+        //assertEquals(expected, s)
+    }
+
+    @Test fun parseFolderLazyWithFileChange() {
+        val path = "src/test/resources"
+        val s = JsonParserDynamic.parseFolderLazy<Student>(path)
+        val iter = s.iterator()
+        while (iter.hasNext()) {
+            // change file
+            // assert
+        }
+        //val expected = listOf(Student(48300, "Alexander German Woods"), Student(48333, "Thomas Barrosos"))
+        //assertEquals(expected, s)
+    }
 }
