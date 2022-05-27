@@ -4,6 +4,7 @@ import pt.isel.sample.*
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class JsonParserReflectTest {
 
@@ -126,31 +127,69 @@ class JsonParserReflectTest {
         assertEquals(22, t?.birth?.day)
     }
 
-    @Test
-    fun parseSequenceOfStudentUsingSetters() {
+    @Test fun parseSequenceOfLazyStudent() {
+        i = 0
+        var expectedI = 0
         val json = "[{nr: \"7353\", name: \"Ze Manel\"}, {nr: \"7354\", name: \"Ze Shrek\"}, {nr: \"7355\", name: \"Ze Toni\"}]"
         val students = listOf(LazyStudent(7353, "Ze Manel"), LazyStudent(7354, "Ze Shrek"), LazyStudent(7355, "Ze Toni"))
         val ss = JsonParserReflect.parseSequence<LazyStudent>(json)
         val iterator = ss.iterator()
-        var i = 0
         while (iterator.hasNext()) {
-            println("Parsing")
-            assertEquals(students[i], iterator.next())
-            i++
+            assertEquals(students[expectedI], iterator.next())
+            expectedI++
+            assertEquals(expectedI, i)
         }
     }
 
     @Test fun parseFolderEager() {
+        setupFiles()
         val path = "src/test/resources"
         val ss = JsonParserReflect.parseFolderEager<Student>(path)
-        val expected = listOf(Student(48300, "Alexander German Woods"), Student(48333, "Thomas Barrosos"))
+        val expected = listOf(Student(48000, "Student 0"), Student(48001, "Student 1"), Student(48002, "Student 2"))
         assertEquals(expected, ss)
     }
 
     @Test fun parseFolderLazy() {
+        setupFiles()
         val path = "src/test/resources"
         val ss = JsonParserReflect.parseFolderLazy<Student>(path)
-        val expected = sequenceOf(Student(48300, "Alexander German Woods"), Student(48333, "Thomas Barrosos"))
+        val expected = sequenceOf(Student(48000, "Student 0"), Student(48001, "Student 1"), Student(48002, "Student 2"))
         assertContentEquals(expected, ss)
     }
+
+    @Test fun parseFolderEagerWithFileChange() {
+        setupFiles()
+        val path = "src/test/resources"
+        val s = JsonParserReflect.parseFolderEager<Student>(path)
+        changeFile("src/test/resources/Student1.txt", "{nr: 48300, name: \"Alexander German Woods\"}")
+        val expected = listOf(Student(48000, "Student 0"), Student(48001, "Student 1"), Student(48002, "Student 2"))
+        assertEquals(expected, s)
+    }
+
+    @Test fun parseFolderLazyWithFileChange() {
+        setupFiles()
+        val path = "src/test/resources"
+        val s = JsonParserReflect.parseFolderLazy<Student>(path)
+        changeFile("src/test/resources/Student1.txt", "{nr: 48300, name: \"Alexander German Woods\"}")
+        val expected = sequenceOf(Student(48000, "Student 0"), Student(48300, "Alexander German Woods"), Student(48002, "Student 2"))
+        assertContentEquals(expected, s)
+    }
+
+    @Test fun parseIncompatibleFileLazy() {
+        val exception = assertFailsWith<Exception> {
+            setupFiles()
+            val path = "src/test/resources"
+            JsonParserReflect.parseFolderLazy<Person>(path).forEach { _ -> }
+        }
+        assertEquals("Object is not compatible", exception.message)
+    }
+
+    @Test fun parseIncompatibleFileEager() {
+        assertFailsWith<Exception> {
+            setupFiles()
+            val path = "src/test/resources"
+            JsonParserReflect.parseFolderEager<Person>(path)
+        }
+    }
+
 }

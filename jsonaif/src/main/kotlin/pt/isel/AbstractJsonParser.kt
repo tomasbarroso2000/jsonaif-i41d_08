@@ -1,7 +1,5 @@
 package pt.isel
 
-
-
 import java.io.File
 import kotlin.reflect.KClass
 
@@ -15,15 +13,18 @@ abstract class AbstractJsonParser : JsonParser {
         return parseArray(JsonTokens(source), klass)
     }
 
-    override fun <T : Any> parseSequence(json: String, klass: KClass<T>): Sequence<T?> {
-        return parseSequence(JsonTokens(json), klass)
+    override fun <T : Any> parseSequence(source: String, klass: KClass<T>): Sequence<T?> {
+        return parseSequence(JsonTokens(source), klass)
     }
 
     override fun <T : Any> parseFolderEager(path: String, klass: KClass<T>): List<T?> {
         val listOfFiles = mutableListOf<T?>()
         File(path).listFiles()?.forEach {
             val text = it.readText()
-            listOfFiles.add(parseObject(JsonTokens(text), klass))
+
+            // Throw exception if the object is not compatible with T
+            val parsedObject = parseObject(JsonTokens(text), klass) ?: throw Exception("Object is not compatible")
+            listOfFiles.add(parsedObject)
         }
         return listOfFiles
     }
@@ -31,14 +32,17 @@ abstract class AbstractJsonParser : JsonParser {
     override fun <T : Any> parseFolderLazy(path: String, klass: KClass<T>): Sequence<T?> = sequence {
         File(path).listFiles()?.forEach {
             val text = it.readText()
-            yield(parseObject(JsonTokens(text), klass))
+
+            // Throw exception if the object is not compatible with T
+            val parsedObject = parseObject(JsonTokens(text), klass) ?: throw Exception("Object is not compatible")
+            yield(parsedObject)
         }
     }
 
     fun <T : Any> parse(tokens: JsonTokens, klass: KClass<T>): T? {
         return when (tokens.current) {
             OBJECT_OPEN -> parseObject(tokens, klass)
-            DOUBLE_QUOTES -> parseString(tokens) as T
+            DOUBLE_QUOTES -> parseString(tokens)
             else -> parsePrimitive(tokens, klass)
         }
     }
@@ -60,9 +64,9 @@ abstract class AbstractJsonParser : JsonParser {
         tokens.pop(ARRAY_END) // Discard square bracket ] ARRAY_END
     }
 
-    private fun parseString(tokens: JsonTokens): String {
+    private fun <T> parseString(tokens: JsonTokens): T {
         tokens.pop(DOUBLE_QUOTES) // Discard double quotes "
-        return tokens.popWordFinishedWith(DOUBLE_QUOTES)
+        return tokens.popWordFinishedWith(DOUBLE_QUOTES) as T
     }
 
     fun <T : Any> parseArray(tokens: JsonTokens, klass: KClass<T>): List<T?> {

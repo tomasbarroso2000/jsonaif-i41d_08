@@ -2,9 +2,11 @@ package pt.isel.sample
 
 import pt.isel.Converter
 
+var i = 0
+
 class ConverterNr : Converter {
     override fun convert(str: String): Int {
-        println("Parsing Nr: $str")
+        i++
         return str.toInt()
     }
 }

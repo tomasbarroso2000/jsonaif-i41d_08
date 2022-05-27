@@ -16,6 +16,8 @@ interface JsonParser {
 
 }
 
+// Extension functions to avoid the need of casting after calling the functions
+
 inline fun <reified T : Any> JsonParser.parse(source: String): T? {
     val klass = T::class
     return this.parse(source, klass)

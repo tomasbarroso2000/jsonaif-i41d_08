@@ -9,11 +9,10 @@ object JsonParserDynamic : AbstractJsonParser() {
     private val setters = mutableMapOf<KClass<*>, Map<String, Setter>>()
 
     override fun <T : Any> parsePrimitive(tokens: JsonTokens, klass: KClass<T>): T {
-        val string = tokens.popWordPrimitive().trim()
-        return basicParser[klass]?.let { it(string) } as T
+        throw Exception("Dynamic can't call parsePrimitive")
     }
 
-    override fun <T : Any> parseObject(tokens: JsonTokens, klass: KClass<T>): T? {
+    override fun <T : Any> parseObject(tokens: JsonTokens, klass: KClass<T>): T {
         // Verifying if there are any constructors that take no parameters
         val isParameterless = klass
             .constructors
@@ -22,7 +21,7 @@ object JsonParserDynamic : AbstractJsonParser() {
 
         // Handle each case differently
         return if (isParameterless) parseObjectOptional(tokens, klass)
-        else null
+        else throw Exception("The constructor parameters are not optional")
     }
 
     /**
